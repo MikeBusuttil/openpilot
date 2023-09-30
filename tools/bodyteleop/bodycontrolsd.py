@@ -37,7 +37,8 @@ def main():
     elif sm.updated['customReservedRawData1']:
       # ToDo: do something with the yolo outputs
       controls = sm['customReservedRawData1'].decode()
-      send_control_message(pm, controls['back'], controls['left'], 'firsty')
+      print(controls, type(controls))
+    #   send_control_message(pm, controls['back'], controls['left'], 'firsty')
     else:
       now = time.monotonic()
       if now > last_control_send_time + TIME_GAP_THRESHOLD:

@@ -33,6 +33,7 @@ def main():
     if sm.updated['customReservedRawData0']:
       controls = json.loads(sm['customReservedRawData0'].decode())
       send_control_message(pm, controls['x'], controls['y'], 'wasd')
+      print(controls['x'], controls['y'])
     elif sm.updated['customReservedRawData1']:
       # ToDo: do something with the yolo outputs
       print(sm['customReservedRawData1'].decode())

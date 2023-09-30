@@ -1,4 +1,7 @@
-import cv2, face_recognition
+#!/usr/bin/env python3
+import cv2, face_recognition, json, time
+from cereal import messaging
+from cereal.visionipc import VisionIpcClient, VisionStreamType
 
 me = cv2.imread("./yoo/1tile.png")
 # me = cv2.imread("./yoo/2.5tiles.png")
@@ -10,7 +13,7 @@ me = face_recognition.face_encodings(me)[0]
 
 face_height_pixels = bottom - top
 face_width_pixels = right - left
-print("H x W", face_height_pixels, face_width_pixels)
+# print("H x W", face_height_pixels, face_width_pixels)
 # face_width_inches = 5.5
 # face_height_inches = 8.5
 # tile length = 36"
@@ -49,7 +52,7 @@ def get_acceleration(size):
         return 1
     return (size - min_size) / size_range
 
-def main_loop(frame):
+def main_loop(frame, pm):
     frame = cv2.cvtColor(frame, cv2.COLOR_BAYER_BG2BGR)
 
     location = locate_match(frame)
@@ -66,4 +69,25 @@ def main_loop(frame):
     yaw_power = get_yaw(center)
     forward_power = get_acceleration(size)
 
-    move_to(forward_power, yaw_power)
+    msg = messaging.new_message()
+    # msg.customReservedRawData1 = json.dumps({"back": forward_power, "left": yaw_power}).encode()
+    print(f"move back={forward_power} left={yaw_power}")
+    pm.send('customReservedRawData1', msg)
+
+def main():
+    pm = messaging.PubMaster(['customReservedRawData1'])
+    vipc_client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_DRIVER, True)
+
+    while not vipc_client.connect(False):
+        time.sleep(0.1)
+    while True:
+        yuv_img_raw = vipc_client.recv()
+        if yuv_img_raw is None or not yuv_img_raw.data.any():
+            continue
+        frame = yuv_img_raw.data.reshape(-1, vipc_client.stride)
+        frame = frame[:vipc_client.height * 3 // 2, :vipc_client.width]
+        frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
+        main_loop(frame, pm)
+
+if __name__ == "__main__":
+    main()

@@ -9,7 +9,7 @@ import json
 import onnx
 from pathlib import Path
 
-os.environ["ZMQ"] = "1"
+# os.environ["ZMQ"] = "1"
 from cereal import messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
 from openpilot.selfdrive.modeld.runners import ModelRunner, Runtime
@@ -135,7 +135,7 @@ def determine_direction(object):
 def main(debug=False):
   yolo_runner = YoloRunner()
   pm = messaging.PubMaster(['customReservedRawData1'])
-  del os.environ["ZMQ"]
+#   del os.environ["ZMQ"]
   vipc_client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_DRIVER, True)
 
   while not vipc_client.connect(False):

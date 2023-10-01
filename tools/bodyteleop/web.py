@@ -163,7 +163,7 @@ async def run(cmd):
 
 def main():
   global pm, sm
-  pm = messaging.PubMaster(['customReservedRawData0', 'customReservedRawData1'])
+  pm = messaging.PubMaster(['customReservedRawData0'])
   sm = messaging.SubMaster(['carState', 'logMessage'])
   # App needs to be HTTPS for microphone and audio autoplay to work on the browser
   cert_path = TELEOPDIR + '/cert.pem'
@@ -185,7 +185,7 @@ def main():
   app['mutable_vals'] = {}
   app.on_shutdown.append(on_shutdown)
   app.router.add_post("/offer", offer)
-  app.router.add_post("/drive", drive)
+#   app.router.add_post("/drive", drive)
   app.router.add_get("/", index)
   app.router.add_static('/static', TELEOPDIR + '/static')
   # app.on_startup.append(start_background_tasks)

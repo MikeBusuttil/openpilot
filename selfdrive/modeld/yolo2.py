@@ -13,7 +13,7 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
 
-os.environ["ZMQ"] = "1"
+# os.environ["ZMQ"] = "1"
 from cereal import messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
 from openpilot.selfdrive.modeld.runners import ModelRunner, Runtime
@@ -162,10 +162,12 @@ def determine_direction(object):
   return get_acceleration(object["size"]), get_yaw(image_center)
 
 def main(debug=False, local=True):
+  print("LOCALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL =",local)
+  local = True
   yolo_runner = YoloRunner()
   if local:
     pm = messaging.PubMaster(['customReservedRawData1'])
-  del os.environ["ZMQ"]
+  # del os.environ["ZMQ"]
   vipc_client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_DRIVER, True)
 
   while not vipc_client.connect(False):
@@ -193,7 +195,6 @@ def main(debug=False, local=True):
         continue
       best_match = { **obj, "size": size, "last_match": 0 }
 
-    # print("test")
     if not best_match["size"] and last_match["size"]:
       best_match = last_match
       best_match["last_match"] += 1
@@ -203,11 +204,9 @@ def main(debug=False, local=True):
 
     if not best_match["size"]:
       continue
-    # print(f"best match", best_match)
 
     last_match = best_match
     forward_power, yaw_power = determine_direction(best_match)
-    print(forward_power, yaw_power)
       
     if local:
       msg = messaging.new_message()

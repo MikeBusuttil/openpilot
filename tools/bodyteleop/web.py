@@ -48,8 +48,11 @@ async def control_body(data, app):
 
 async def drive(request):
   logger.info("\n\n\nMOVE!\n\n")
-  params = await request.json()
-  print(params)
+  payload = await request.json()
+  #  # print(params)
+  msg = messaging.new_message()
+  msg.customReservedRawData1 = json.dumps(payload).encode()
+  pm.send('customReservedRawData1', msg)
   return web.Response(
     content_type="application/json",
     text=json.dumps(
@@ -160,7 +163,7 @@ async def run(cmd):
 
 def main():
   global pm, sm
-  pm = messaging.PubMaster(['customReservedRawData0'])
+  pm = messaging.PubMaster(['customReservedRawData0', 'customReservedRawData1'])
   sm = messaging.SubMaster(['carState', 'logMessage'])
   # App needs to be HTTPS for microphone and audio autoplay to work on the browser
   cert_path = TELEOPDIR + '/cert.pem'

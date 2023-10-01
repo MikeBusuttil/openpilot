@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import cv2, face_recognition, json, time, os
+from requests import post
 from cereal import messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
 
@@ -68,12 +69,14 @@ def main_loop(frame, pm):
     forward_power = get_acceleration(size)
 
     msg = messaging.new_message()
+    post("https://192.168.63.84:5000/drive", json={"back": forward_power, "left": yaw_power}, verify=False)
     msg.customReservedRawData1 = json.dumps({"back": forward_power, "left": yaw_power}).encode()
     print(f"move back={forward_power} left={yaw_power}")
-    pm.send('customReservedRawData1', msg)
+    # pm.send('customReservedRawData1', msg)
 
 def main():
-    pm = messaging.PubMaster(['customReservedRawData1'])
+    # pm = messaging.PubMaster(['customReservedRawData1'])
+    pm = None
     del os.environ["ZMQ"]
     vipc_client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_DRIVER, True)
 

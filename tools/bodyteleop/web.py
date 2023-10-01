@@ -46,6 +46,17 @@ async def control_body(data, app):
     app['mutable_vals']['prev_command'] = [data['x'], data['y']]
 
 
+async def move(request):
+  logger.info("\n\n\nMOVE!\n\n")
+  params = await request.json()
+  print(params)
+  return web.Response(
+    content_type="application/json",
+    text=json.dumps(
+      {"cool": "beans"}
+    ),
+  )
+
 async def offer(request):
   logger.info("\n\n\nnewoffer!\n\n")
 

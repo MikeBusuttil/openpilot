@@ -83,7 +83,7 @@ procs = [
   PythonProcess("updated", "selfdrive.updated", only_offroad, enabled=not PC),
   PythonProcess("uploader", "system.loggerd.uploader", always_run),
   PythonProcess("statsd", "selfdrive.statsd", always_run),
-  PythonProcess("find_me", "yoo.find_me", always_run),
+#   PythonProcess("find_me", "yoo.find_me", always_run),
 
   # debug procs
   NativeProcess("bridge", "cereal/messaging", ["./bridge"], notcar),

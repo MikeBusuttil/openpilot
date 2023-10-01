@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-import cv2, face_recognition, json, time
+import cv2, face_recognition, json, time, os
 from cereal import messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
 
+os.environ["ZMQ"] = "1"
 me = cv2.imread("./yoo/1tile.png")
 # me = cv2.imread("./yoo/2.5tiles.png")
-me = cv2.cvtColor(me, cv2.COLOR_BGR2RGB)
+# me = cv2.cvtColor(me, cv2.COLOR_BGR2RGB)
 top, right, bottom, left = face_recognition.face_locations(me)[0]
 # cv2.imshow('face', me[top:bottom, left:right])
 # cv2.waitKey(0)
@@ -27,10 +28,9 @@ size_range = max_size - min_size
 def locate_match(frame):
     locations = face_recognition.face_locations(frame)
     for top, right, bottom, left in locations:
-        face = frame[top:bottom, left:right]
-        face = face_recognition.face_encodings(face)
+        face = face_recognition.face_encodings(frame, known_face_locations=[(top, right, bottom, left)])[0]
         if face_recognition.compare_faces([me], face):
-            return top, right, bottom, left
+            return (top, right, bottom, left)
         
 def calculate_distance(top, right, bottom, left):
     '''
@@ -53,8 +53,6 @@ def get_acceleration(size):
     return (size - min_size) / size_range
 
 def main_loop(frame, pm):
-    frame = cv2.cvtColor(frame, cv2.COLOR_BAYER_BG2BGR)
-
     location = locate_match(frame)
     if not location:
         #TODO don't just full stop if you don't see me
@@ -63,19 +61,20 @@ def main_loop(frame, pm):
         return
     
     _, right, _, left = location
-    center = (right + left)/2
+    center = (right + left) / 2
     size = right - left
 
     yaw_power = get_yaw(center)
     forward_power = get_acceleration(size)
 
     msg = messaging.new_message()
-    # msg.customReservedRawData1 = json.dumps({"back": forward_power, "left": yaw_power}).encode()
+    msg.customReservedRawData1 = json.dumps({"back": forward_power, "left": yaw_power}).encode()
     print(f"move back={forward_power} left={yaw_power}")
     pm.send('customReservedRawData1', msg)
 
 def main():
     pm = messaging.PubMaster(['customReservedRawData1'])
+    del os.environ["ZMQ"]
     vipc_client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_DRIVER, True)
 
     while not vipc_client.connect(False):
@@ -86,7 +85,7 @@ def main():
             continue
         frame = yuv_img_raw.data.reshape(-1, vipc_client.stride)
         frame = frame[:vipc_client.height * 3 // 2, :vipc_client.width]
-        frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
+        frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_NV12)
         main_loop(frame, pm)
 
 if __name__ == "__main__":

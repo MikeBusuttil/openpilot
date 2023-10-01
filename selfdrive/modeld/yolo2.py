@@ -140,13 +140,20 @@ def get_yaw(image_center):
     return 1
   return 3.3*power
 
+def in_sweet_spot(size):
+  return size > TOO_FAR_SIZE and size < TOO_CLOSE_SIZE
+def youre_too_close(size):
+  return size < TOO_FAR_SIZE
+def wait_for_me(size):
+  return size > TOO_CLOSE_SIZE
+
 def get_acceleration(size):
-  if size < TOO_FAR_SIZE and size > TOO_CLOSE_SIZE:
+  if in_sweet_spot(size):
     return 0
-  if size < TOO_FAR_SIZE:
-    return -1
-  if size > TOO_CLOSE_SIZE:
-    return 1
+  if youre_too_close(size):
+    return -0.9
+  if wait_for_me(size):
+    return 0.8
   return .00001
 #   return (size - HURRY_UP_SIZE) / (TOO_CLOSE_SIZE - HURRY_UP_SIZE)
 

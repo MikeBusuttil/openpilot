@@ -46,7 +46,7 @@ async def control_body(data, app):
     app['mutable_vals']['prev_command'] = [data['x'], data['y']]
 
 
-async def move(request):
+async def drive(request):
   logger.info("\n\n\nMOVE!\n\n")
   params = await request.json()
   print(params)
@@ -182,6 +182,7 @@ def main():
   app['mutable_vals'] = {}
   app.on_shutdown.append(on_shutdown)
   app.router.add_post("/offer", offer)
+  app.router.add_post("/drive", drive)
   app.router.add_get("/", index)
   app.router.add_static('/static', TELEOPDIR + '/static')
   # app.on_startup.append(start_background_tasks)

@@ -56,7 +56,7 @@ procs = [
   NativeProcess("encoderd", "system/loggerd", ["./encoderd"], only_onroad),
   NativeProcess("stream_encoderd", "system/loggerd", ["./encoderd", "--stream"], notcar),
   NativeProcess("loggerd", "system/loggerd", ["./loggerd"], logging),
-  NativeProcess("modeld", "selfdrive/modeld", ["./modeld"], only_onroad),
+#   NativeProcess("modeld", "selfdrive/modeld", ["./modeld"], only_onroad),
   NativeProcess("mapsd", "selfdrive/navd", ["./mapsd"], only_onroad),
   PythonProcess("navmodeld", "selfdrive.modeld.navmodeld", only_onroad),
   NativeProcess("sensord", "system/sensord", ["./sensord"], only_onroad, enabled=not PC),
@@ -83,14 +83,13 @@ procs = [
   PythonProcess("updated", "selfdrive.updated", only_offroad, enabled=not PC),
   PythonProcess("uploader", "system.loggerd.uploader", always_run),
   PythonProcess("statsd", "selfdrive.statsd", always_run),
-#   PythonProcess("yolo2", "yoo.yolo2", notcar, enabled=True),
 
   # debug procs
   NativeProcess("bridge", "cereal/messaging", ["./bridge"], notcar),
   PythonProcess("webjoystick", "tools.bodyteleop.web", notcar),
   PythonProcess("bodycontrolsd", "tools.bodyteleop.bodycontrolsd", notcar),
-  PythonProcess("fakemodeld", "selfdrive.modeld.fakemodeld", notcar, enabled=False),
-#   NativeProcess("yolo2", "selfdrive/modeld", ["./yolo2"], notcar, enabled=True),
+  PythonProcess("fakemodeld", "selfdrive.modeld.fakemodeld", notcar, enabled=True),
+  NativeProcess("yolo2", "selfdrive/modeld", ["./yolo2"], notcar, enabled=True),
 ]
 
 managed_processes = {p.name: p for p in procs}

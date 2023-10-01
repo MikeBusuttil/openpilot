@@ -18,7 +18,8 @@ from cereal import messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
 from openpilot.selfdrive.modeld.runners import ModelRunner, Runtime
 
-TOO_CLOSE_SIZE = 28_390
+TOO_CLOSE_SIZE = 30_000
+TOO_FAR_SIZE = 15_000
 INPUT_SHAPE = (640, 416)
 OUTPUT_SHAPE = (1, 16380, 85)
 MODEL_PATHS = {
@@ -129,12 +130,29 @@ class YoloRunner:
       cv2.rectangle(img, pt1, pt2, (0, 255, 0), 2)
       cv2.putText(img, f"{obj['pred_class']} {obj['prob']:.2f}", pt1, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     return img
-  
+
+def get_yaw(image_center):
+  if abs(image_center - half_width) < 10:
+    return 0
+  offset = half_width - image_center
+  power = offset / half_width
+  if abs(power) > 1:
+    return 1
+  return 3.3*power
+
+def get_acceleration(size):
+  if size < TOO_FAR_SIZE and size > TOO_CLOSE_SIZE:
+    return 0
+  if size < TOO_FAR_SIZE:
+    return -1
+  if size > TOO_CLOSE_SIZE:
+    return 1
+  return .00001
+#   return (size - HURRY_UP_SIZE) / (TOO_CLOSE_SIZE - HURRY_UP_SIZE)
+
 def determine_direction(object):
-  center = (object['pt1'][0] + object['pt2'][0]) / 2
-  if abs(center - half_width) < 10:
-    return 0, 0
-  return 0, -1 if center > half_width else 1
+  image_center = (object['pt1'][0] + object['pt2'][0]) / 2
+  return get_acceleration(object["size"]), get_yaw(image_center)
 
 def main(debug=False):
   yolo_runner = YoloRunner()
@@ -175,17 +193,17 @@ def main(debug=False):
     if best_match["last_match"] > 5:
       continue
 
-    if best_match["size"] > TOO_CLOSE_SIZE or not best_match["size"]:
+    if not best_match["size"]:
       continue
     # print(f"best match", best_match)
 
     last_match = best_match
     forward_power, yaw_power = determine_direction(best_match)
-    print(yaw_power)
+    print(forward_power, yaw_power)
       
     msg = messaging.new_message()
     msg.customReservedRawData1 = json.dumps({"left": yaw_power, "back": 0}).encode()
-    post("https://192.168.63.84:5000/drive", json={"left": yaw_power, "back": 0}, verify=False)
+    post("https://192.168.63.84:5000/drive", json={"left": yaw_power, "back": forward_power}, verify=False)
     if debug and False:
       et = time.time()
       cv2.imwrite(str(Path(__file__).parent / 'yolo.jpg'), yolo_runner.draw_boxes(img, outputs))

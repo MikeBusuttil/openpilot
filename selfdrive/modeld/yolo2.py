@@ -161,9 +161,10 @@ def determine_direction(object):
   image_center = (object['pt1'][0] + object['pt2'][0]) / 2
   return get_acceleration(object["size"]), get_yaw(image_center)
 
-def main(debug=False):
+def main(debug=False, local=True):
   yolo_runner = YoloRunner()
-  #   pm = messaging.PubMaster(['customReservedRawData1'])
+  if local:
+    pm = messaging.PubMaster(['customReservedRawData1'])
   del os.environ["ZMQ"]
   vipc_client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_DRIVER, True)
 
@@ -208,10 +209,13 @@ def main(debug=False):
     forward_power, yaw_power = determine_direction(best_match)
     print(forward_power, yaw_power)
       
-    msg = messaging.new_message()
-    msg.customReservedRawData1 = json.dumps({"left": yaw_power, "back": 0}).encode()
-    post("https://192.168.63.84:5000/drive", json={"left": yaw_power, "back": forward_power}, verify=False)
-    if debug and False:
+    if local:
+      msg = messaging.new_message()
+      msg.customReservedRawData1 = json.dumps({"left": yaw_power, "back": forward_power}).encode()
+      pm.send('customReservedRawData1', msg)
+    else:
+      post("https://192.168.63.84:5000/drive", json={"left": yaw_power, "back": forward_power}, verify=False)
+    if debug:
       et = time.time()
       cv2.imwrite(str(Path(__file__).parent / 'yolo.jpg'), yolo_runner.draw_boxes(img, outputs))
       print(f"eval time: {(et-st)*1000:.2f}ms, found: {','.join([x['pred_class'] for x in outputs])}")
@@ -220,6 +224,7 @@ def main(debug=False):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="Receive VisionIPC frames, run YOLO and publish outputs")
   parser.add_argument("--debug", action="store_true", help="debug output")
+  parser.add_argument("--local", action="store_true", help="run locally")
   args = parser.parse_args()
 
-  main(debug=args.debug)
+  main(debug=args.debug, local=args.local)

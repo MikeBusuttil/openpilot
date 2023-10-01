@@ -7,18 +7,24 @@ import os
 import argparse
 import json
 import onnx
+from requests import post
 from pathlib import Path
+
+import warnings
+warnings.filterwarnings("ignore")
 
 os.environ["ZMQ"] = "1"
 from cereal import messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
 from openpilot.selfdrive.modeld.runners import ModelRunner, Runtime
 
+TOO_CLOSE_SIZE = 28_390
 INPUT_SHAPE = (640, 416)
 OUTPUT_SHAPE = (1, 16380, 85)
 MODEL_PATHS = {
   ModelRunner.THNEED: Path(__file__).parent / 'models/yolov5n_flat.thneed',
   ModelRunner.ONNX: Path(__file__).parent / 'models/yolov5n_flat.onnx'}
+half_width = INPUT_SHAPE[0]/2
 
 def xywh2xyxy(x):
   y = x.copy()
@@ -123,17 +129,23 @@ class YoloRunner:
       cv2.rectangle(img, pt1, pt2, (0, 255, 0), 2)
       cv2.putText(img, f"{obj['pred_class']} {obj['prob']:.2f}", pt1, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     return img
-
+  
+def determine_direction(object):
+  center = (object['pt1'][0] + object['pt2'][0]) / 2
+  if abs(center - half_width) < 10:
+    return 0, 0
+  return 0, -1 if center > half_width else 1
 
 def main(debug=False):
   yolo_runner = YoloRunner()
-  pm = messaging.PubMaster(['customReservedRawData1'])
+  #   pm = messaging.PubMaster(['customReservedRawData1'])
   del os.environ["ZMQ"]
   vipc_client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_DRIVER, True)
 
   while not vipc_client.connect(False):
     time.sleep(0.1)
 
+  last_match = { "size": 0, "last_match": 0 }
   while True:
     yuv_img_raw = vipc_client.recv()
     if yuv_img_raw is None or not yuv_img_raw.data.any():
@@ -143,13 +155,38 @@ def main(debug=False):
     imgff = yuv_img_raw.data.reshape(-1, vipc_client.stride)
     imgff = imgff[:vipc_client.height * 3 // 2, :vipc_client.width]
     img = cv2.cvtColor(imgff, cv2.COLOR_YUV2BGR_NV12)
-    # img = cv2.cvtColor(img, )
     outputs = yolo_runner.run(img)
+    cv2.imwrite(str(Path(__file__).parent / 'yolo.jpg'), yolo_runner.draw_boxes(img, outputs))
 
+    best_match = { "size": 0, "last_match": 0 }
+    for obj in outputs:
+      if obj['pred_class'] != "person":
+        continue
+      size = (obj['pt1'][0] - obj['pt2'][0])*(obj['pt1'][1] - obj['pt2'][1])
+      if size < best_match["size"]:
+        continue
+      best_match = { **obj, "size": size, "last_match": 0 }
+
+    # print("test")
+    if not best_match["size"] and last_match["size"]:
+      best_match = last_match
+      best_match["last_match"] += 1
+
+    if best_match["last_match"] > 5:
+      continue
+
+    if best_match["size"] > TOO_CLOSE_SIZE or not best_match["size"]:
+      continue
+    # print(f"best match", best_match)
+
+    last_match = best_match
+    forward_power, yaw_power = determine_direction(best_match)
+    print(yaw_power)
+      
     msg = messaging.new_message()
-    # msg.customReservedRawData1 = json.dumps(outputs).encode()
-    # pm.send('customReservedRawData1', msg)
-    if debug:
+    msg.customReservedRawData1 = json.dumps({"left": yaw_power, "back": 0}).encode()
+    post("https://192.168.63.84:5000/drive", json={"left": yaw_power, "back": 0}, verify=False)
+    if debug and False:
       et = time.time()
       cv2.imwrite(str(Path(__file__).parent / 'yolo.jpg'), yolo_runner.draw_boxes(img, outputs))
       print(f"eval time: {(et-st)*1000:.2f}ms, found: {','.join([x['pred_class'] for x in outputs])}")

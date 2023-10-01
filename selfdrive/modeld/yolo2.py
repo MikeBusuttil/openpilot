@@ -14,6 +14,8 @@ from cereal import messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
 from openpilot.selfdrive.modeld.runners import ModelRunner, Runtime
 
+half_width = 1928/2
+TOO_CLOSE_SIZE = 16_390
 INPUT_SHAPE = (640, 416)
 OUTPUT_SHAPE = (1, 16380, 85)
 MODEL_PATHS = {
@@ -123,7 +125,12 @@ class YoloRunner:
       cv2.rectangle(img, pt1, pt2, (0, 255, 0), 2)
       cv2.putText(img, f"{obj['pred_class']} {obj['prob']:.2f}", pt1, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     return img
-
+  
+def determine_direction(object):
+  center = (object['pt1'][0] + object['pt2'][0]) / 2
+  if abs(center - half_width) < 10:
+    return 0, 0
+  return 0, -1 if center > half_width else 1
 
 def main(debug=False):
   yolo_runner = YoloRunner()
@@ -134,6 +141,7 @@ def main(debug=False):
   while not vipc_client.connect(False):
     time.sleep(0.1)
 
+  last_match = { "size": 0, "last_match": 0 }
   while True:
     yuv_img_raw = vipc_client.recv()
     if yuv_img_raw is None or not yuv_img_raw.data.any():
@@ -143,11 +151,33 @@ def main(debug=False):
     imgff = yuv_img_raw.data.reshape(-1, vipc_client.stride)
     imgff = imgff[:vipc_client.height * 3 // 2, :vipc_client.width]
     img = cv2.cvtColor(imgff, cv2.COLOR_YUV2BGR_NV12)
-    # img = cv2.cvtColor(img, )
     outputs = yolo_runner.run(img)
 
+    best_match = { "size": 0, "last_match": 0 }
+    for obj in outputs:
+      if obj['pred_class'] != "Person":
+        continue
+      size = (obj['pt1'][0] - obj['pt2'][0])*(obj['pt1'][1] - obj['pt2'][1])
+      if size < best_match["size"]:
+        continue
+      best_match = { **obj, "size": size }
+
+    if not best_match["size"] and last_match["size"]:
+      best_match = last_match
+      best_match["last_match"] += 1
+
+    if best_match["last_match"] > 5:
+      continue
+
+    if obj["size"] > TOO_CLOSE_SIZE:
+      continue
+
+    last_match = best_match
+
+    forward_power, yaw_power = determine_direction(best_match)
+      
     msg = messaging.new_message()
-    msg.customReservedRawData1 = json.dumps(outputs).encode()
+    msg.customReservedRawData1 = json.dumps({"back": forward_power, "left": yaw_power}).encode()
     pm.send('customReservedRawData1', msg)
     if debug:
       et = time.time()

@@ -4,17 +4,23 @@ from requests import post
 from cereal import messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
 
+import warnings
+warnings.filterwarnings("ignore")
+
 os.environ["ZMQ"] = "1"
-me = cv2.imread("./yoo/1tile.png")
 # me = cv2.imread("./yoo/2.5tiles.png")
 # me = cv2.cvtColor(me, cv2.COLOR_BGR2RGB)
-top, right, bottom, left = face_recognition.face_locations(me)[0]
+# top, right, bottom, left = face_recognition.face_locations(me)[0]
 # cv2.imshow('face', me[top:bottom, left:right])
 # cv2.waitKey(0)
-me = face_recognition.face_encodings(me)[0]
+me2 = []
+for n in [75, 107, 108, 155, "1tile"]:
+    me = cv2.imread(f"./yoo/{n}.png")
+    me = face_recognition.face_encodings(me)[0]
+    me2.append(me)
 
-face_height_pixels = bottom - top
-face_width_pixels = right - left
+# face_height_pixels = bottom - top
+# face_width_pixels = right - left
 # print("H x W", face_height_pixels, face_width_pixels)
 # face_width_inches = 5.5
 # face_height_inches = 8.5
@@ -29,9 +35,12 @@ size_range = max_size - min_size
 def locate_match(frame):
     locations = face_recognition.face_locations(frame)
     for top, right, bottom, left in locations:
+        cv2.imwrite(f"{right - left}.png", frame)
         face = face_recognition.face_encodings(frame, known_face_locations=[(top, right, bottom, left)])[0]
-        if face_recognition.compare_faces([me], face):
+        if face_recognition.compare_faces(me2, face):
             return (top, right, bottom, left)
+        else:
+            print('rejected')
         
 def calculate_distance(top, right, bottom, left):
     '''
@@ -69,9 +78,11 @@ def main_loop(frame, pm):
     forward_power = get_acceleration(size)
 
     msg = messaging.new_message()
-    post("https://192.168.63.84:5000/drive", json={"back": forward_power, "left": yaw_power}, verify=False)
+    # post("https://192.168.63.84:5000/drive", json={"back": forward_power, "left": yaw_power}, verify=False)
+    post("https://192.168.63.84:5000/drive", json={"left": yaw_power, "back": 0}, verify=False)
     msg.customReservedRawData1 = json.dumps({"back": forward_power, "left": yaw_power}).encode()
-    print(f"move back={forward_power} left={yaw_power}")
+    print(f"size={size}  center={center}")
+    # print(f"move back={forward_power} left={yaw_power}")
     # pm.send('customReservedRawData1', msg)
 
 def main():

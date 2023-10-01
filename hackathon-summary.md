@@ -8,16 +8,16 @@ Leon follows you and watches you, wherever you may go, without getting too close
 
 ## How we built it
 
-Leon uses Yassine's [YoLo](https://github.com/YassineYousfi) model to detect people.  He locks on to the person who takes up the biggest part of his field of view and rotates his body to always look their way.  If you get too close be backs up to give you space, and if you walk too far away he tries to catch up... until he looses you :'(
+Leon uses Yassine's [YoLo](https://github.com/YassineYousfi) model to detect people.  He locks on to the person who takes up the biggest part of his field of view and rotates his body to always look their way.  If you get too close he backs up to give you space and if you walk too far away he tries to catch up... until he looses you :'(
 
 ## Challenges we ran into
 
-- Communication during runtime between WSL2 & the Comma
-- Installing a custom python library (face_recognition) to the Comma
+- Communication between WSL2 & the Comma
+- Installing a custom Python library (face_recognition) on the Comma
 
 ## Accomplishments that we're proud of
 
-- Got a deliverable result that completes the objective (& more) despite having no prior ML or CV experience
+- Got a deliverable result that completes the objective (& more) despite having no prior ML, CV, or hackathon experience
 
 ## What we learned
 
@@ -31,3 +31,7 @@ Leon uses Yassine's [YoLo](https://github.com/YassineYousfi) model to detect peo
 - Understanding hand gestures for extra control
 - Motion smoothing when transitioning between states
 - Collision avoidance
+
+## Documentation
+
+- https://github.com/MikeBusuttil/openpilot/tree/local-buddy#nepo-leon---body-buddy

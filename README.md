@@ -39,4 +39,8 @@ $ ./launch_openpilot.sh
 
 - if you loose connection to your tmux terminal, run `$ sudo systemctl restart comma`
 
+## About
+
+Nepo Leon was developed during the [COMMA_HACK_4 hackathon](https://blog.comma.ai/comma_hack_4/) at the Comma AI offices in sunny San Diego.  For more detailed instructions, see the [Hacakathon README](/body/README.md).
+
 Enjoy ☺🤖

@@ -51,6 +51,9 @@ def launcher(proc: str, name: str) -> None:
 def nativelauncher(pargs: list[str], cwd: str, name: str) -> None:
   os.environ['MANAGER_DAEMON'] = name
 
+  if name == 'camerad':
+    cwd = '/root/openpilot/tools/webcam'
+    pargs = ["./camerad.py"]
   # exec the process
   os.chdir(cwd)
   os.execvp(pargs[0], pargs)

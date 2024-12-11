@@ -10,7 +10,7 @@ class Camera:
     self.stream_type = stream_type
     self.cur_frame_id = 0
 
-    self.container = av.open(camera_id)
+    self.container = av.open(f"/dev/video{camera_id}")
     assert self.container.streams.video, f"Can't open video stream for camera {camera_id}"
     self.video_stream = self.container.streams.video[0]
     self.W = self.video_stream.codec_context.width
